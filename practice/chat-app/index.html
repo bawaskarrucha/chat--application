@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Chat App</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: rgb(12, 148, 245);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            position: relative;
+        }
+
+        .login-container, .chat-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 300px;
+        }
+
+        .chat-container {
+            display: none;
+        }
+
+        input {
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: rgb(12, 148, 245);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #messages {
+            height: 300px;
+            overflow-y: auto;
+            background: rgb(240, 240, 240);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .me {
+            background: lightblue;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: right;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notMe {
+            background: lightgray;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .delete-btn {
+            background: red;
+            color: white;
+            border: none;
+            padding: 0;
+            border-radius: 2px;
+            font-size: 8px;
+            width: 60px;
+        }
+
+        #status {
+            margin-top: 10px;
+            font-size: 14px;
+            color: green;
+        }
+
+        #moodTracker {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: lightgray;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+
+        #moodTracker-box {
+            display: none;
+            position: absolute;
+            bottom: 50px;
+            right: 10px;
+            width: 200px;
+            height: 200px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+        }
+
+        #moodTracker-box input {
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        #moodTracker-box button {
+            width: 100%;
+            padding: 10px;
+            background: rgb(12, 148, 245);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #moodResponse {
+            margin-top: 10px;
+            font-size: 14px;
+            color: blue;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container" id="loginPage">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="registerUser()">Register & Login</button>
+    </div>
+
+    <div class="chat-container" id="chatPage">
+        <h2>Chat App</h2>
+        <div id="status">Status: <span id="userStatus">Offline</span></div>
+        <div id="messages"></div>
+        <input type="text" id="msgTxt" placeholder="Enter your message...">
+        <button onclick="sendMsg()">Submit</button>
+    </div>
+
+    <div id="moodTracker" onclick="toggleMoodTracker()">😊 Mood Tracker</div>
+    <div id="moodTracker-box">
+        <h4>Mood Tracker</h4>
+        <input type="text" id="moodInput" placeholder="How are you feeling?">
+        <button onclick="submitMood()">Submit</button>
+        <div id="moodResponse"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getDatabase, ref, set, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAtx3ehAPiDePGfVGJLI-y56KQtgqPtzhs",
+            authDomain: "chat-app.firebaseapp.com",
+            projectId: "chat-app-gs-c3915",
+            storageBucket: "chat-app.appspot.com",
+            messagingSenderId: "1000548869330",
+            appId: "1:1000548869330:web:55a089fbf5d9edc2d8390b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const auth = getAuth(app);
+
+        window.registerUser = function() {
+            let username = document.getElementById('username').value;
+            let email = document.getElementById('email').value;
+            let password = document.getElementById('password').value;
+
+            if (username && email && password) {
+                createUserWithEmailAndPassword(auth, email, password)
+                    .then((userCredential) => {
+                        sessionStorage.setItem('username', username);
+                        document.getElementById('loginPage').style.display = 'none';
+                        document.getElementById('chatPage').style.display = 'block';
+                        document.getElementById('userStatus').textContent = 'Online';
+                    })
+                    .catch((error) => {
+                        alert(error.message);
+                    });
+            } else {
+                alert("Please fill all fields");
+            }
+        }
+
+        window.sendMsg = function() {
+            let msgTxt = document.getElementById('msgTxt').value;
+            let username = sessionStorage.getItem('username');
+            let timestamp = new Date().getTime();
+            set(ref(db, "messages/" + timestamp), {
+                msg: msgTxt,
+                sender: username
+            });
+        }
+
+        onChildAdded(ref(db, "messages"), (data) => {
+            let username = sessionStorage.getItem('username');
+            let msgData = data.val();
+            let msgClass = msgData.sender === username ? 'me' : 'notMe';
+            let msgId = data.key;  // Get the unique message key
+
+            // Create the message with a delete button
+            let messageHTML = `<div class='${msgClass}' id='msg-${msgId}'>
+                                ${msgData.sender}: ${msgData.msg}
+                                <button class="delete-btn" onclick="deleteMsg('${msgId}')">Delete</button>
+                              </div>`;
+            document.getElementById('messages').innerHTML += messageHTML;
+        });
+
+        window.deleteMsg = function(messageId) {
+            // Remove the message from the Firebase database
+            remove(ref(db, "messages/" + messageId));
+            // Remove the message element from the UI
+            document.getElementById('msg-' + messageId).remove();
+        }
+
+        window.toggleMoodTracker = function() {
+            let moodTrackerBox = document.getElementById('moodTracker-box');
+            moodTrackerBox.style.display = (moodTrackerBox.style.display === 'block') ? 'none' : 'block';
+        }
+
+        window.submitMood = function() {
+            let input = document.getElementById('moodInput').value;
+            let moodResponse = document.getElementById('moodResponse');
+            if (input.toLowerCase().includes("happy")) {
+                moodResponse.innerText = 'Great to hear! Keep smiling 😊';
+            } else if (input.toLowerCase().includes("sad")) {
+                moodResponse.innerText = 'Sorry to hear that. Hope things get better soon 🌈';
+            } else {
+                moodResponse.innerText = 'Thanks for sharing your mood! Stay positive! 💪';
+            }
+        }
+    </script>
+</body>
+</html>
